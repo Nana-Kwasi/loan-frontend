@@ -32,7 +32,8 @@ import {
   CheckCircle,
   Cancel,
   Download,
-  Assessment
+  Assessment,
+  DateRange
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
@@ -53,12 +54,14 @@ const Reports = () => {
     approvalRate: 0
   });
   const [dateRange, setDateRange] = useState('30');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
     fetchReportData();
-  }, [dateRange]);
+  }, [dateRange, startDate, endDate]);
 
   const fetchReportData = async () => {
     try {
@@ -70,13 +73,35 @@ const Reports = () => {
       const loansData = Array.isArray(loansResponse.data) ? loansResponse.data : [];
       const customersData = Array.isArray(customersResponse.data) ? customersResponse.data : [];
 
+      // Filter by date range if custom range selected
+      let filteredLoans = [...loansData];
+      if (dateRange === 'custom' && startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        filteredLoans = loansData.filter(l => {
+          const created = new Date(l.createdAt || l.created_at || l.applicationDate);
+          return created >= start && created <= new Date(end.getTime() + 24*60*60*1000 - 1);
+        });
+      } else {
+        const days = parseInt(dateRange, 10) || 30;
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+        filteredLoans = loansData.filter(l => {
+          const created = new Date(l.createdAt || l.created_at || l.applicationDate);
+          return created >= cutoff;
+        });
+      }
+
+      // Sort by most recent first for table
+      filteredLoans.sort((a, b) => new Date(b.createdAt || b.created_at || b.applicationDate) - new Date(a.createdAt || a.created_at || a.applicationDate));
+
       // Calculate report metrics
-      const totalLoans = loansData.length;
-      const totalAmount = loansData.reduce((sum, loan) => sum + parseFloat(loan.amount || 0), 0);
-      const approvedLoans = loansData.filter(loan => loan.status === 'APPROVED').length;
-      const rejectedLoans = loansData.filter(loan => loan.status === 'REJECTED').length;
-      const pendingLoans = loansData.filter(loan => loan.status === 'PENDING').length;
-      const disbursedLoans = loansData.filter(loan => loan.status === 'DISBURSED').length;
+      const totalLoans = filteredLoans.length;
+      const totalAmount = filteredLoans.reduce((sum, loan) => sum + parseFloat(loan.amount || 0), 0);
+      const approvedLoans = filteredLoans.filter(loan => loan.status === 'APPROVED').length;
+      const rejectedLoans = filteredLoans.filter(loan => loan.status === 'REJECTED').length;
+      const pendingLoans = filteredLoans.filter(loan => loan.status === 'PENDING').length;
+      const disbursedLoans = filteredLoans.filter(loan => loan.status === 'DISBURSED').length;
       const totalCustomers = customersData.length;
       const averageLoanAmount = totalLoans > 0 ? totalAmount / totalLoans : 0;
       const approvalRate = totalLoans > 0 ? (approvedLoans / totalLoans) * 100 : 0;
@@ -93,7 +118,7 @@ const Reports = () => {
         approvalRate
       });
 
-      setLoans(loansData);
+      setLoans(filteredLoans);
       setCustomers(customersData);
       setLoading(false);
     } catch (error) {
@@ -157,26 +182,108 @@ const Reports = () => {
     }
   };
 
-  const exportToCSV = () => {
-    const csvContent = [
-      ['Loan Number', 'Customer', 'Amount', 'Status', 'Created Date', 'Purpose'].join(','),
-      ...loans.map(loan => [
-        loan.loanNumber,
-        `${loan.customer?.firstName} ${loan.customer?.lastName}`,
-        loan.amount,
-        loan.status,
-        new Date(loan.createdAt).toLocaleDateString(),
-        loan.purpose || ''
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `loan-report-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+  const generatePDFReport = () => {
+    // Create a new window for PDF generation
+    const printWindow = window.open('', '_blank');
+    
+    // Get current date range for the report
+    const reportDate = startDate && endDate ? 
+      `${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}` :
+      `Last ${dateRange} days`;
+    
+    // Generate HTML content for the PDF
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Loan Management Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .header h1 { color: #1976d2; margin: 0; }
+          .header p { color: #666; margin: 5px 0; }
+          .summary { display: flex; justify-content: space-around; margin: 20px 0; }
+          .summary-item { text-align: center; }
+          .summary-item h3 { margin: 0; color: #1976d2; }
+          .summary-item p { margin: 5px 0; font-size: 14px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f5f5f5; font-weight: bold; }
+          .status { padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+          .status-pending { background-color: #fff3cd; color: #856404; }
+          .status-approved { background-color: #d4edda; color: #155724; }
+          .status-rejected { background-color: #f8d7da; color: #721c24; }
+          .status-disbursed { background-color: #cce5ff; color: #004085; }
+          .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Loan Management System Report</h1>
+          <p>Report Period: ${reportDate}</p>
+          <p>Generated on: ${new Date().toLocaleString()}</p>
+        </div>
+        
+        <div class="summary">
+          <div class="summary-item">
+            <h3>${reportData.totalLoans}</h3>
+            <p>Total Loans</p>
+          </div>
+          <div class="summary-item">
+            <h3>$${reportData.totalAmount.toLocaleString()}</h3>
+            <p>Total Amount</p>
+          </div>
+          <div class="summary-item">
+            <h3>${reportData.approvalRate.toFixed(1)}%</h3>
+            <p>Approval Rate</p>
+          </div>
+          <div class="summary-item">
+            <h3>$${reportData.averageLoanAmount.toLocaleString()}</h3>
+            <p>Average Loan</p>
+          </div>
+        </div>
+        
+        <h3>Loan Applications</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Loan Number</th>
+              <th>Customer</th>
+              <th>Amount</th>
+              <th>Purpose</th>
+              <th>Status</th>
+              <th>Created Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${loans.slice(0, 50).map(loan => `
+              <tr>
+                <td>${loan.loanNumber || 'N/A'}</td>
+                <td>${loan.customer?.name || 'N/A'}</td>
+                <td>$${parseFloat(loan.amount || 0).toLocaleString()}</td>
+                <td>${loan.purpose || 'N/A'}</td>
+                <td><span class="status status-${loan.status?.toLowerCase() || 'pending'}">${loan.status || 'PENDING'}</span></td>
+                <td>${new Date(loan.createdAt).toLocaleDateString()}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        
+        <div class="footer">
+          <p>This report was generated by the Loan Management System</p>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.focus();
+    
+    // Wait for content to load then print
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
   };
 
   if (loading) {
@@ -189,7 +296,7 @@ const Reports = () => {
         <Typography variant="h4">
           Reports & Analytics
         </Typography>
-        <Box display="flex" gap={2}>
+        <Box display="flex" gap={2} alignItems="center">
           <FormControl size="small" sx={{ minWidth: 120 }}>
             <InputLabel>Date Range</InputLabel>
             <Select
@@ -201,14 +308,40 @@ const Reports = () => {
               <MenuItem value="30">Last 30 days</MenuItem>
               <MenuItem value="90">Last 90 days</MenuItem>
               <MenuItem value="365">Last year</MenuItem>
+              <MenuItem value="custom">Custom Range</MenuItem>
             </Select>
           </FormControl>
+          
+          {dateRange === 'custom' && (
+            <>
+              <TextField
+                size="small"
+                label="Start Date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ minWidth: 150 }}
+              />
+              <TextField
+                size="small"
+                label="End Date"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ minWidth: 150 }}
+              />
+            </>
+          )}
+          
           <Button
-            variant="outlined"
+            variant="contained"
             startIcon={<Download />}
-            onClick={exportToCSV}
+            onClick={generatePDFReport}
+            sx={{ ml: 1 }}
           >
-            Export CSV
+            Download PDF
           </Button>
         </Box>
       </Box>
@@ -366,11 +499,11 @@ const Reports = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {loans.slice(0, 10).map((loan) => (
+      {loans.slice(0, 10).map((loan) => (
                 <TableRow key={loan.id}>
                   <TableCell>{loan.loanNumber}</TableCell>
                   <TableCell>
-                    {loan.customer?.firstName} {loan.customer?.lastName}
+            {loan.customer?.name || `${loan.customer?.firstName || ''} ${loan.customer?.lastName || ''}`}
                   </TableCell>
                   <TableCell>${parseFloat(loan.amount).toLocaleString()}</TableCell>
                   <TableCell>{loan.purpose || 'N/A'}</TableCell>

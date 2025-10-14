@@ -273,11 +273,11 @@ const LoanManagement = () => {
               <TableRow key={loan.id}>
                 <TableCell>{loan.loanNumber}</TableCell>
                 <TableCell>
-                  <Box display="flex" alignItems="center">
-                    <Person sx={{ mr: 1 }} />
-                    {loan.customer?.firstName} {loan.customer?.lastName}
-                  </Box>
-                </TableCell>
+  <Box display="flex" alignItems="center">
+    <Person sx={{ mr: 1 }} />
+    {loan.customer?.name || loan.customer?.fullName || 'N/A'}
+  </Box>
+</TableCell>
                 <TableCell>
                   <Box display="flex" alignItems="center">
                     <AttachMoney sx={{ mr: 1 }} />
@@ -306,37 +306,286 @@ const LoanManagement = () => {
       </TableContainer>
 
       {/* New Loan Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>New Loan Application</DialogTitle>
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="lg" fullWidth>
+        <DialogTitle>Comprehensive Loan Application Form</DialogTitle>
         <form onSubmit={handleSubmit(onSubmitLoan)}>
-          <DialogContent>
+          <DialogContent sx={{ maxHeight: '80vh', overflow: 'auto' }}>
             <Grid container spacing={2} sx={{ mt: 1 }}>
+              {/* Personal Information */}
               <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel>Customer</InputLabel>
-                  <Select
-                    {...register('customerId', { required: 'Customer is required' })}
-                    error={!!errors.customerId}
-                  >
-                    {customers.map((customer) => (
-                      <MenuItem key={customer.id} value={customer.id}>
-                        {customer.firstName} {customer.lastName} - {customer.customerId}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                {errors.customerId && (
-                  <Typography color="error" variant="caption">
-                    {errors.customerId.message}
-                  </Typography>
-                )}
+                <Typography variant="h6" gutterBottom color="primary">1. Personal Information</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Loan Amount"
+                  label="First Name(s)"
+                  {...register('firstName', { required: 'First name is required' })}
+                  error={!!errors.firstName}
+                  helperText={errors.firstName?.message}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Surname"
+                  {...register('surname', { required: 'Surname is required' })}
+                  error={!!errors.surname}
+                  helperText={errors.surname?.message}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Middle Name(s)"
+                  {...register('middleName')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Maiden Name"
+                  {...register('maidenName')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Date of Birth"
+                  type="date"
+                  InputLabelProps={{ shrink: true }}
+                  {...register('dateOfBirth')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Gender</InputLabel>
+                  <Select {...register('gender')} label="Gender">
+                    <MenuItem value="Male">Male</MenuItem>
+                    <MenuItem value="Female">Female</MenuItem>
+                    <MenuItem value="Other">Other</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Nationality"
+                  {...register('nationality')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Country / Place of Birth"
+                  {...register('placeOfBirth')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Marital Status</InputLabel>
+                  <Select {...register('maritalStatus')} label="Marital Status">
+                    <MenuItem value="Single">Single</MenuItem>
+                    <MenuItem value="Married">Married</MenuItem>
+                    <MenuItem value="Divorced">Divorced</MenuItem>
+                    <MenuItem value="Widowed">Widowed</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Number of Dependents"
                   type="number"
-                  {...register('amount', { required: 'Amount is required', min: 1 })}
+                  {...register('numberOfDependents')}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Residential Address"
+                  multiline
+                  rows={2}
+                  {...register('residentialAddress')}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Postal Address"
+                  multiline
+                  rows={2}
+                  {...register('postalAddress')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Landmark"
+                  {...register('landmark')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Residential Status</InputLabel>
+                  <Select {...register('residentialStatus')} label="Residential Status">
+                    <MenuItem value="Own">Own</MenuItem>
+                    <MenuItem value="Rent">Rent</MenuItem>
+                    <MenuItem value="Family">Family</MenuItem>
+                    <MenuItem value="Other">Other</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Years at Current Address"
+                  type="number"
+                  {...register('yearsAtCurrentAddress')}
+                />
+              </Grid>
+
+              {/* Identification */}
+              <Grid item xs={12} sx={{ mt: 2 }}>
+                <Typography variant="h6" gutterBottom color="primary">2. Identification</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>ID Type</InputLabel>
+                  <Select {...register('idType')} label="ID Type">
+                    <MenuItem value="National ID">National ID</MenuItem>
+                    <MenuItem value="Voter ID">Voter ID</MenuItem>
+                    <MenuItem value="Driver's Licence">Driver's Licence</MenuItem>
+                    <MenuItem value="Passport">Passport</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="ID Number"
+                  {...register('idNumber')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Issue Date"
+                  type="date"
+                  InputLabelProps={{ shrink: true }}
+                  {...register('idIssueDate')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Expiry Date"
+                  type="date"
+                  InputLabelProps={{ shrink: true }}
+                  {...register('idExpiryDate')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="SSF Number"
+                  {...register('ssfNumber')}
+                />
+              </Grid>
+
+              {/* Contact Information */}
+              <Grid item xs={12} sx={{ mt: 2 }}>
+                <Typography variant="h6" gutterBottom color="primary">3. Contact Information</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Mobile Number"
+                  {...register('mobileNumber')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Email Address"
+                  type="email"
+                  {...register('emailAddress')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Telephone (Home)"
+                  {...register('telephoneHome')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Telephone (Office)"
+                  {...register('telephoneOffice')}
+                />
+              </Grid>
+
+              {/* Employment Details */}
+              <Grid item xs={12} sx={{ mt: 2 }}>
+                <Typography variant="h6" gutterBottom color="primary">4. Employment Details</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Employer's Name"
+                  {...register('employerName')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Occupation / Position Held"
+                  {...register('occupation')}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Employer's Address"
+                  multiline
+                  rows={2}
+                  {...register('employerAddress')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Years in Current Job"
+                  type="number"
+                  {...register('yearsInCurrentJob')}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Previous Employment (if less than 3 years)"
+                  multiline
+                  rows={2}
+                  {...register('previousEmployment')}
+                />
+              </Grid>
+
+              {/* Loan Request */}
+              <Grid item xs={12} sx={{ mt: 2 }}>
+                <Typography variant="h6" gutterBottom color="primary">5. Loan Request</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Amount Requested"
+                  type="number"
+                  step="0.01"
+                  {...register('amount', { 
+                    required: 'Amount is required', 
+                    min: { value: 1, message: 'Amount must be greater than 0' },
+                    max: { value: 1000000, message: 'Amount cannot exceed 1,000,000' }
+                  })}
                   error={!!errors.amount}
                   helperText={errors.amount?.message}
                 />
@@ -344,20 +593,13 @@ const LoanManagement = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Interest Rate (%)"
+                  label="Loan Duration (months)"
                   type="number"
-                  step="0.01"
-                  {...register('interestRate', { required: 'Interest rate is required' })}
-                  error={!!errors.interestRate}
-                  helperText={errors.interestRate?.message}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Duration (months)"
-                  type="number"
-                  {...register('durationMonths', { required: 'Duration is required', min: 1 })}
+                  {...register('durationMonths', { 
+                    required: 'Duration is required', 
+                    min: { value: 1, message: 'Duration must be at least 1 month' },
+                    max: { value: 360, message: 'Duration cannot exceed 30 years' }
+                  })}
                   error={!!errors.durationMonths}
                   helperText={errors.durationMonths?.message}
                 />
@@ -365,18 +607,159 @@ const LoanManagement = () => {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Purpose"
+                  label="Purpose of Loan"
+                  multiline
+                  rows={2}
                   {...register('purpose')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Customer Account Number (if already a customer)"
+                  {...register('customerAccountNumber')}
+                />
+              </Grid>
+
+              {/* Next of Kin / Emergency Contact */}
+              <Grid item xs={12} sx={{ mt: 2 }}>
+                <Typography variant="h6" gutterBottom color="primary">6. Next of Kin / Emergency Contact</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Contact Person Name"
+                  {...register('contactPersonName')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Relationship to Applicant"
+                  {...register('relationshipToApplicant')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Phone Number of Contact"
+                  {...register('contactPersonPhone')}
+                />
+              </Grid>
+
+              {/* Financial / Income Details */}
+              <Grid item xs={12} sx={{ mt: 2 }}>
+                <Typography variant="h6" gutterBottom color="primary">7. Financial / Income Details</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Gross Annual Income"
+                  type="number"
+                  step="0.01"
+                  {...register('grossAnnualIncome')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Net Monthly Income"
+                  type="number"
+                  step="0.01"
+                  {...register('netMonthlyIncome')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Monthly Expenses"
+                  type="number"
+                  step="0.01"
+                  {...register('monthlyExpenses')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Disposable Income"
+                  type="number"
+                  step="0.01"
+                  {...register('disposableIncome')}
                 />
               </Grid>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Collateral Description"
+                  label="Existing Loans (Lender, Amount, Remaining months)"
+                  multiline
+                  rows={2}
+                  {...register('existingLoans')}
+                />
+              </Grid>
+
+              {/* Collateral Information */}
+              <Grid item xs={12} sx={{ mt: 2 }}>
+                <Typography variant="h6" gutterBottom color="primary">Collateral Information</Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Collateral Details"
                   multiline
                   rows={3}
                   {...register('collateralDescription')}
                 />
+              </Grid>
+
+              {/* Guarantor Information */}
+              <Grid item xs={12} sx={{ mt: 2 }}>
+                <Typography variant="h6" gutterBottom color="primary">Guarantor Information</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Guarantor Name"
+                  {...register('guarantorName')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Guarantor Contact"
+                  {...register('guarantorContact')}
+                />
+              </Grid>
+
+              {/* Declaration & Consent */}
+              <Grid item xs={12} sx={{ mt: 2 }}>
+                <Typography variant="h6" gutterBottom color="primary">8. Declaration & Consent</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Signature Date"
+                  type="date"
+                  InputLabelProps={{ shrink: true }}
+                  {...register('signatureDate')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Information Correct</InputLabel>
+                  <Select {...register('informationCorrect')} label="Information Correct">
+                    <MenuItem value={true}>Yes</MenuItem>
+                    <MenuItem value={false}>No</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Authorization to Debit</InputLabel>
+                  <Select {...register('authorizationDebit')} label="Authorization to Debit">
+                    <MenuItem value={true}>Yes</MenuItem>
+                    <MenuItem value={false}>No</MenuItem>
+                  </Select>
+                </FormControl>
               </Grid>
             </Grid>
           </DialogContent>
