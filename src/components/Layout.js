@@ -69,6 +69,11 @@ const Layout = ({ children }) => {
         { text: 'Customers', icon: <People />, path: '/customers' },
         { text: 'Loans', icon: <AccountBalance />, path: '/loans' }
       ],
+      LOAN_PROCESSING_OFFICER: [
+        { text: 'Customers', icon: <People />, path: '/customers' },
+        { text: 'Loans', icon: <AccountBalance />, path: '/loans' },
+        { text: 'Reports', icon: <Assessment />, path: '/reports' }
+      ],
       LOAN_OFFICER: [
         { text: 'Customers', icon: <People />, path: '/customers' },
         { text: 'Loans', icon: <AccountBalance />, path: '/loans' }
@@ -91,6 +96,7 @@ const Layout = ({ children }) => {
         { text: 'Audit Logs', icon: <History />, path: '/audit-logs' }
       ],
       COMPLIANCE_OFFICER: [
+        { text: 'Loans', icon: <AccountBalance />, path: '/loans' },
         { text: 'Reports', icon: <Assessment />, path: '/reports' },
         { text: 'Audit Logs', icon: <History />, path: '/audit-logs' }
       ]

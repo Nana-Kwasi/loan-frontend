@@ -48,15 +48,43 @@ export const AuthProvider = ({ children }) => {
         password
       });
       
+      console.log('Login response from backend:', response.data);
+      
       const { token, user } = response.data;
+      console.log('User data:', user);
+      console.log('mustChangePassword from backend:', user.mustChangePassword);
+      
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(user);
+      
+      return { 
+        success: true, 
+        mustChangePassword: user.mustChangePassword || false 
+      };
+    } catch (error) {
+      return { 
+        success: false, 
+        message: error.response?.data?.message || error.response?.data || 'Login failed' 
+      };
+    }
+  };
+
+  const changePassword = async (newPassword) => {
+    try {
+      const response = await axios.post('/api/auth/change-password', {
+        newPassword
+      });
+      
+      // Refresh user data after password change
+      const userResponse = await axios.get('/api/auth/me');
+      setUser(userResponse.data);
+      
       return { success: true };
     } catch (error) {
       return { 
         success: false, 
-        message: error.response?.data?.message || 'Login failed' 
+        message: error.response?.data?.message || 'Password change failed' 
       };
     }
   };
@@ -71,6 +99,7 @@ export const AuthProvider = ({ children }) => {
     user,
     login,
     logout,
+    changePassword,
     loading
   };
 

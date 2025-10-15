@@ -11,7 +11,11 @@ import {
   CircularProgress,
   Card,
   CardContent,
-  Avatar
+  Avatar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import { LockOutlined } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,7 +27,11 @@ const Login = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const { login, changePassword } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -40,10 +48,49 @@ const Login = () => {
 
     const result = await login(formData.usernameOrEmail, formData.password);
     
+    console.log('Login result:', result);
+    console.log('Must change password?', result.mustChangePassword);
+    
     if (result.success) {
-      navigate('/dashboard');
+      if (result.mustChangePassword) {
+        console.log('Showing password change modal');
+        setLoading(false);
+        setShowPasswordChange(true);
+        console.log('showPasswordChange state set to true');
+        // Don't navigate yet - wait for password change
+        return;
+      } else {
+        console.log('Navigating to dashboard');
+        setLoading(false);
+        navigate('/dashboard');
+      }
     } else {
       setError(result.message);
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    setPasswordError('');
+    
+    if (!newPassword || newPassword.length < 8) {
+      setPasswordError('Password must be at least 8 characters long');
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+    
+    setLoading(true);
+    const result = await changePassword(newPassword);
+    
+    if (result.success) {
+      setShowPasswordChange(false);
+      navigate('/dashboard');
+    } else {
+      setPasswordError(result.message);
     }
     
     setLoading(false);
@@ -136,6 +183,125 @@ const Login = () => {
           </CardContent>
         </Card>
       </Box>
+
+      {/* Password Change Modal */}
+      {console.log('Rendering Password Change Modal, showPasswordChange:', showPasswordChange)}
+      <Dialog 
+        open={showPasswordChange} 
+        onClose={() => {
+          console.log('Dialog onClose called (should not happen)');
+        }} 
+        disableEscapeKeyDown 
+        maxWidth="sm" 
+        fullWidth
+        PaperProps={{
+          className: 'mint-dialog-paper',
+          sx: {
+            borderRadius: '16px',
+            overflow: 'hidden',
+            zIndex: 9999
+          }
+        }}
+        sx={{
+          zIndex: 9999
+        }}
+      >
+        <DialogTitle 
+          className="mint-dialog-header"
+          sx={{ 
+            background: 'linear-gradient(135deg, #3eb489 0%, #52c9a0 100%)',
+            color: 'white',
+            padding: '24px 28px',
+            borderBottom: '3px solid #26d0a1'
+          }}
+        >
+          <Box className="mint-dialog-title">
+            <LockOutlined sx={{ fontSize: 28 }} />
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'white' }}>
+                Change Your Password
+              </Typography>
+              <Typography className="mint-dialog-subtitle" variant="body2">
+                Set a secure password for your account
+              </Typography>
+            </Box>
+          </Box>
+        </DialogTitle>
+        <DialogContent 
+          className="mint-dialog-content"
+          sx={{ 
+            padding: '28px !important',
+            background: 'linear-gradient(to bottom, #ffffff 0%, #f4fcf9 100%)'
+          }}
+        >
+          <Typography variant="body2" className="mint-dialog-content-text" sx={{ mb: 3 }}>
+            For security reasons, you must change your temporary password before continuing.
+          </Typography>
+          
+          {passwordError && (
+            <Alert 
+              severity="error" 
+              sx={{ 
+                mb: 3,
+                borderRadius: '8px',
+                borderLeft: '4px solid #ef4444'
+              }}
+            >
+              {passwordError}
+            </Alert>
+          )}
+          
+          <TextField
+            fullWidth
+            label="New Password"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            sx={{ mb: 2.5 }}
+            helperText="Minimum 8 characters, include letters and numbers"
+          />
+          <TextField
+            fullWidth
+            label="Confirm New Password"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            helperText="Re-enter your new password"
+          />
+        </DialogContent>
+        <DialogActions 
+          className="mint-dialog-actions"
+          sx={{ 
+            padding: '20px 28px !important',
+            backgroundColor: '#f9fafb',
+            borderTop: '1px solid #b8e6d5',
+            gap: 2
+          }}
+        >
+          <Button 
+            onClick={handlePasswordChange} 
+            variant="contained" 
+            disabled={loading}
+            fullWidth
+            sx={{
+              background: 'linear-gradient(135deg, #3eb489 0%, #52c9a0 100%)',
+              color: 'white',
+              padding: '12px 24px',
+              fontWeight: 600,
+              fontSize: '15px',
+              boxShadow: '0 2px 6px rgba(62, 180, 137, 0.15)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #2a8a67 0%, #3eb489 100%)',
+                boxShadow: '0 4px 12px rgba(62, 180, 137, 0.25)',
+                transform: 'translateY(-1px)'
+              },
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {loading ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Change Password & Continue'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

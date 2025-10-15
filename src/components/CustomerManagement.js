@@ -39,7 +39,8 @@ import {
   Phone,
   Email,
   LocationOn,
-  Work
+  Work,
+  PersonAdd
 } from '@mui/icons-material';
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
@@ -62,7 +63,7 @@ const CustomerManagement = () => {
 
   const fetchCustomers = async () => {
     try {
-      const response = await axios.get('/api/csa/customers');
+      const response = await axios.get('/api/customers');
       // Ensure we always set an array
       setCustomers(Array.isArray(response.data) ? response.data : []);
       setLoading(false);
@@ -106,11 +107,30 @@ const CustomerManagement = () => {
 
   const onSubmit = async (data) => {
     try {
+      // Simple duplicate client-side validation (fast UX), server still validates
+      if (!editingCustomer) {
+        try {
+          const [byPhone, byId] = await Promise.all([
+            axios.get(`/api/customers/search?query=${encodeURIComponent(data.phoneNumber)}`),
+            axios.get(`/api/customers/search?query=${encodeURIComponent(data.idCard)}`)
+          ]);
+          const phoneExists = Array.isArray(byPhone.data) && byPhone.data.some(c => c.phoneNumber === data.phoneNumber);
+          const idExists = Array.isArray(byId.data) && byId.data.some(c => c.idCard === data.idCard);
+          if (phoneExists) throw new Error('A customer with this phone number already exists');
+          if (idExists) throw new Error('A customer with this ID number already exists');
+        } catch (dupErr) {
+          if (dupErr.message?.includes('exists')) {
+            setSnackbar({ open: true, message: dupErr.message, severity: 'error' });
+            return;
+          }
+        }
+      }
+
       if (editingCustomer) {
-        await axios.put(`/api/csa/customers/${editingCustomer.id}`, data);
+        await axios.put(`/api/customers/${editingCustomer.id}`, data);
         setSnackbar({ open: true, message: 'Customer updated successfully', severity: 'success' });
       } else {
-        await axios.post('/api/csa/customers', data);
+        await axios.post('/api/customers', data);
         setSnackbar({ open: true, message: 'Customer created successfully', severity: 'success' });
       }
       fetchCustomers();
@@ -152,7 +172,7 @@ const CustomerManagement = () => {
   const handleDelete = async (customerId) => {
     if (window.confirm('Are you sure you want to delete this customer?')) {
       try {
-        await axios.delete(`/api/csa/customers/${customerId}`);
+        await axios.delete(`/api/customers/${customerId}`);
         setSnackbar({ open: true, message: 'Customer deleted successfully', severity: 'success' });
         fetchCustomers();
       } catch (error) {
@@ -191,6 +211,7 @@ const CustomerManagement = () => {
           variant="contained"
           startIcon={<Add />}
           onClick={() => handleOpenDialog()}
+         
         >
           Add Customer
         </Button>
@@ -279,12 +300,45 @@ const CustomerManagement = () => {
       </TableContainer>
 
       {/* Customer Form Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {editingCustomer ? 'Edit Customer' : 'Add New Customer'}
+      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          className: 'mint-dialog-paper',
+          sx: { borderRadius: '16px', overflow: 'hidden' }
+        }}
+      >
+        <DialogTitle 
+          className="mint-dialog-header"
+          sx={{ 
+            background: 'linear-gradient(135deg, #3eb489 0%, #52c9a0 100%)',
+            color: 'white',
+            padding: '24px 28px',
+            borderBottom: '3px solid #26d0a1'
+          }}
+        >
+          <Box className="mint-dialog-title">
+            <PersonAdd sx={{ fontSize: 28 }} />
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'white' }}>
+                {editingCustomer ? 'Edit Customer' : 'Add New Customer'}
+              </Typography>
+              <Typography className="mint-dialog-subtitle" variant="body2">
+                {editingCustomer ? 'Update customer information' : 'Register a new customer in the system'}
+              </Typography>
+            </Box>
+          </Box>
         </DialogTitle>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <DialogContent>
+          <DialogContent 
+            className="mint-dialog-content"
+            sx={{ 
+              padding: '28px !important',
+              background: 'linear-gradient(to bottom, #ffffff 0%, #f4fcf9 100%)'
+            }}
+          >
             <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12} sm={6}>
                 <TextField
@@ -300,7 +354,15 @@ const CustomerManagement = () => {
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
+                <FormControl 
+                  fullWidth
+                  sx={{ 
+                    '& .MuiSelect-root': { width: '100% !important' },
+                    '& .MuiSelect-select': { width: '100% !important', paddingRight: '40px !important' },
+                    '& .MuiOutlinedInput-root': { width: '100% !important' },
+                    '& .MuiInputBase-root': { width: '100% !important' }
+                  }}
+                >
                   <InputLabel>Marital Status</InputLabel>
                   <Select
                     {...register('maritalStatus', { required: 'Marital status is required' })}
@@ -320,7 +382,15 @@ const CustomerManagement = () => {
                 )}
               </Grid>
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
+                <FormControl 
+                  fullWidth
+                  sx={{ 
+                    '& .MuiSelect-root': { width: '100% !important' },
+                    '& .MuiSelect-select': { width: '100% !important', paddingRight: '40px !important' },
+                    '& .MuiOutlinedInput-root': { width: '100% !important' },
+                    '& .MuiInputBase-root': { width: '100% !important' }
+                  }}
+                >
                   <InputLabel>Employment Status</InputLabel>
                   <Select
                     {...register('employmentStatus', { required: 'Employment status is required' })}
@@ -361,7 +431,15 @@ const CustomerManagement = () => {
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
+                <FormControl 
+                  fullWidth
+                  sx={{ 
+                    '& .MuiSelect-root': { width: '100% !important' },
+                    '& .MuiSelect-select': { width: '100% !important', paddingRight: '40px !important' },
+                    '& .MuiOutlinedInput-root': { width: '100% !important' },
+                    '& .MuiInputBase-root': { width: '100% !important' }
+                  }}
+                >
                   <InputLabel>ID Type</InputLabel>
                   <Select
                     {...register('idType', { required: 'ID type is required' })}
@@ -414,21 +492,58 @@ const CustomerManagement = () => {
                   {...register('phoneNumber', { 
                     required: 'Phone number is required',
                     pattern: {
-                      value: /^[0-9+\-\s()]+$/,
-                      message: 'Please enter a valid phone number'
-                    },
-                    minLength: { value: 10, message: 'Phone number must be at least 10 digits' }
+                      value: /^[0-9]{10}$/,
+                      message: 'Phone number must be exactly 10 digits'
+                    }
                   })}
                   error={!!errors.phoneNumber}
-                  helperText={errors.phoneNumber?.message}
+                  helperText={errors.phoneNumber?.message || 'Enter 10-digit phone number (e.g., 0241234567)'}
+                  placeholder="0241234567"
                 />
               </Grid>
             </Grid>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog}>Cancel</Button>
-            <Button type="submit" variant="contained">
-              {editingCustomer ? 'Update' : 'Create'}
+          <DialogActions 
+            className="mint-dialog-actions"
+            sx={{ 
+              padding: '20px 28px !important',
+              backgroundColor: '#f9fafb',
+              borderTop: '1px solid #b8e6d5',
+              gap: 2
+            }}
+          >
+            <Button 
+              onClick={handleCloseDialog}
+              variant="outlined"
+              sx={{
+                borderColor: '#b8e6d5',
+                color: '#2a8a67',
+                '&:hover': {
+                  borderColor: '#3eb489',
+                  backgroundColor: '#f4fcf9'
+                }
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              variant="contained"
+              sx={{
+                background: 'linear-gradient(135deg, #3eb489 0%, #52c9a0 100%)',
+                color: 'white',
+                padding: '10px 32px',
+                fontWeight: 600,
+                boxShadow: '0 2px 6px rgba(62, 180, 137, 0.15)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #2a8a67 0%, #3eb489 100%)',
+                  boxShadow: '0 4px 12px rgba(62, 180, 137, 0.25)',
+                  transform: 'translateY(-1px)'
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {editingCustomer ? 'Update Customer' : 'Create Customer'}
             </Button>
           </DialogActions>
         </form>

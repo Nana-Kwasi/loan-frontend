@@ -15,13 +15,74 @@ import Layout from './components/Layout';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1976d2',
+      main: '#3eb489',
+      light: '#52c9a0',
+      dark: '#2a8a67',
     },
     secondary: {
-      main: '#dc004e',
+      main: '#26d0a1',
+      light: '#e8f8f3',
     },
     background: {
-      default: '#f5f5f5',
+      default: '#f4fcf9',
+      paper: '#ffffff',
+    },
+    success: {
+      main: '#3eb489',
+      light: '#e8f8f3',
+    },
+    warning: {
+      main: '#f59e0b',
+    },
+    error: {
+      main: '#ef4444',
+    },
+    info: {
+      main: '#3b82f6',
+    },
+  },
+  shape: {
+    borderRadius: 12,
+  },
+  shadows: [
+    'none',
+    '0 2px 8px rgba(62, 180, 137, 0.15)',
+    '0 4px 12px rgba(62, 180, 137, 0.15)',
+    '0 6px 16px rgba(62, 180, 137, 0.25)',
+    '0 8px 24px rgba(0, 0, 0, 0.15)',
+    ...Array(20).fill('0 8px 24px rgba(0, 0, 0, 0.15)')
+  ],
+  components: {
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          boxShadow: '0 2px 8px rgba(62, 180, 137, 0.15)',
+          border: '1px solid #e8f8f3',
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+          textTransform: 'none',
+          fontWeight: 500,
+        },
+        contained: {
+          boxShadow: '0 2px 6px rgba(62, 180, 137, 0.15)',
+          '&:hover': {
+            boxShadow: '0 4px 12px rgba(62, 180, 137, 0.25)',
+          },
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+        },
+      },
     },
   },
 });
@@ -47,7 +108,8 @@ function ProtectedRoute({ children, allowedRoles }) {
 function AppRoutes() {
   const { user } = useAuth();
   
-  if (!user) {
+  // If no user OR user must change password, show login page
+  if (!user || user.mustChangePassword) {
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
@@ -61,21 +123,21 @@ function AppRoutes() {
       <Routes>
         <Route path="/dashboard" element={<Dashboard />} />
         
-        {/* CSA Routes */}
+        {/* Customer Management Routes - CSA creates, others view */}
         <Route 
           path="/customers" 
           element={
-            <ProtectedRoute allowedRoles={['CSA', 'LOAN_OFFICER', 'BRANCH_MANAGER', 'CREDIT_MANAGER', 'SYSTEM_ADMIN']}>
+            <ProtectedRoute allowedRoles={['CSA', 'LOAN_PROCESSING_OFFICER', 'CREDIT_MANAGER', 'SYSTEM_ADMIN', 'COMPLIANCE_OFFICER']}>
               <CustomerManagement />
             </ProtectedRoute>
           } 
         />
         
-        {/* Loan Management Routes */}
+        {/* Loan Management Routes - Role-based access */}
         <Route 
           path="/loans" 
           element={
-            <ProtectedRoute allowedRoles={['CSA', 'LOAN_OFFICER', 'BRANCH_MANAGER', 'CREDIT_MANAGER', 'SYSTEM_ADMIN']}>
+            <ProtectedRoute allowedRoles={['CSA', 'LOAN_PROCESSING_OFFICER', 'CREDIT_MANAGER', 'SYSTEM_ADMIN', 'COMPLIANCE_OFFICER']}>
               <LoanManagement />
             </ProtectedRoute>
           } 
@@ -91,11 +153,11 @@ function AppRoutes() {
           } 
         />
         
-        {/* Reports Routes */}
+        {/* Reports Routes - Compliance Officer and Management */}
         <Route 
           path="/reports" 
           element={
-            <ProtectedRoute allowedRoles={['BRANCH_MANAGER', 'CREDIT_MANAGER', 'SYSTEM_ADMIN', 'COMPLIANCE_OFFICER']}>
+            <ProtectedRoute allowedRoles={['LOAN_PROCESSING_OFFICER', 'CREDIT_MANAGER', 'SYSTEM_ADMIN', 'COMPLIANCE_OFFICER']}>
               <Reports />
             </ProtectedRoute>
           } 

@@ -57,7 +57,7 @@ const AuditLogs = () => {
 
   const fetchAuditLogs = async () => {
     try {
-      const response = await axios.get('/api/admin/audit-logs');
+      const response = await axios.get('/api/audit-logs');
       setAuditLogs(Array.isArray(response.data) ? response.data : []);
       setLoading(false);
     } catch (error) {
@@ -302,7 +302,7 @@ const AuditLogs = () => {
                   <TableCell>
                     <Box display="flex" alignItems="center">
                       <CalendarToday sx={{ mr: 1, fontSize: 16 }} />
-                      {formatDate(log.timestamp)}
+                      {formatDate(log.createdAt)}
                     </Box>
                   </TableCell>
                   <TableCell>
