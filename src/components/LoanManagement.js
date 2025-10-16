@@ -39,11 +39,16 @@ import {
   AccountBalance,
   Person,
   AttachMoney,
+  Search,
   Schedule,
   CheckCircle,
   Cancel,
   Visibility,
-  Edit
+  Edit,
+  Download,
+  PictureAsPdf,
+  Description,
+  Image
 } from '@mui/icons-material';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
@@ -59,6 +64,8 @@ const LoanManagement = () => {
   const [openLoanDetailsDialog, setOpenLoanDetailsDialog] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [actionType, setActionType] = useState('');
+  const [loanDocuments, setLoanDocuments] = useState([]);
+  const [loadingDocuments, setLoadingDocuments] = useState(false);
   const [tabValue, setTabValue] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [anchorEl, setAnchorEl] = useState(null);
@@ -75,6 +82,8 @@ const LoanManagement = () => {
   // Checkbox states for validation
   const [informationCorrect, setInformationCorrect] = useState(false);
   const [authorizationDebit, setAuthorizationDebit] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsModalOpen, setTermsModalOpen] = useState(false);
   
   // Employment type state
   const [employmentType, setEmploymentType] = useState('');
@@ -82,6 +91,9 @@ const LoanManagement = () => {
   // Pagination state
   const [currentStep, setCurrentStep] = useState(1);
   const [totalSteps] = useState(6); // Total number of form steps
+  
+  // Search state
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Loan type configuration (ID Proof only for all loan types)
   const loanTypesConfig = {
@@ -238,8 +250,17 @@ const LoanManagement = () => {
     setSelectedIdType('');
     setInformationCorrect(false);
     setAuthorizationDebit(false);
+    setTermsAccepted(false);
     setEmploymentType('');
     setCurrentStep(1); // Reset to first step
+  };
+
+  const handleOpenTermsModal = () => {
+    setTermsModalOpen(true);
+  };
+
+  const handleCloseTermsModal = () => {
+    setTermsModalOpen(false);
   };
 
   // Pagination functions
@@ -364,8 +385,13 @@ const LoanManagement = () => {
   // Phone number validation function
   const validatePhoneNumber = (value) => {
     if (!value) return true; // Optional fields
+    // Remove any non-digit characters and check length
+    const digitsOnly = value.replace(/\D/g, '');
+    if (digitsOnly.length !== 10) {
+      return 'Phone number must be exactly 10 digits';
+    }
     const phoneRegex = /^[0-9]{10}$/;
-    return phoneRegex.test(value) || 'Phone number must be exactly 10 digits';
+    return phoneRegex.test(digitsOnly) || 'Phone number must be exactly 10 digits';
   };
 
   // Handle collateral document uploads
@@ -421,8 +447,8 @@ const LoanManagement = () => {
         </FormControl>
       </Grid>
 
-      {/* Loan Type Selection */}
-      <Grid item xs={12}>
+              {/* Loan Type Selection */}
+              <Grid item xs={12}>
         <Typography variant="h6" gutterBottom color="primary" sx={{ 
           fontWeight: 600, 
           mb: 1,
@@ -435,27 +461,27 @@ const LoanManagement = () => {
       <Grid item xs={12}>
         <FormControl fullWidth required>
           <InputLabel>Loan Type *</InputLabel>
-          <Select
-            value={selectedLoanType}
-            onChange={(e) => setSelectedLoanType(e.target.value)}
+                  <Select
+                    value={selectedLoanType}
+                    onChange={(e) => setSelectedLoanType(e.target.value)}
             label="Loan Type *"
             sx={{ width: '100% !important' }}
-          >
-            <MenuItem value="personal">Personal Loan</MenuItem>
-            <MenuItem value="business">Business / Commercial Loan</MenuItem>
+                  >
+                    <MenuItem value="personal">Personal Loan</MenuItem>
+                    <MenuItem value="business">Business / Commercial Loan</MenuItem>
             <MenuItem value="auto">Auto / Vehicle Loan</MenuItem>
-            <MenuItem value="mortgage">Mortgage / Home Loan</MenuItem>
-            <MenuItem value="asset_backed">Asset-Backed / Collateral Loan</MenuItem>
-          </Select>
-        </FormControl>
-      </Grid>
+                    <MenuItem value="mortgage">Mortgage / Home Loan</MenuItem>
+                    <MenuItem value="asset_backed">Asset-Backed / Collateral Loan</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
     </>
   );
 
   const renderStep2 = () => (
     <>
-      {/* Personal Information */}
-      <Grid item xs={12}>
+              {/* Personal Information */}
+              <Grid item xs={12}>
         <Typography variant="h6" gutterBottom color="primary" sx={{ 
           fontWeight: 600, 
           mb: 1,
@@ -467,149 +493,149 @@ const LoanManagement = () => {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Customer information is automatically filled from the selected customer's registration data.
         </Typography>
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="First Name(s)"
-          {...register('firstName', { required: 'First name is required' })}
-          error={!!errors.firstName}
-          helperText={errors.firstName?.message}
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="First Name(s)"
+                  {...register('firstName', { required: 'First name is required' })}
+                  error={!!errors.firstName}
+                  helperText={errors.firstName?.message}
           InputProps={{ readOnly: true }}
           sx={{ '& .MuiInputBase-input': { backgroundColor: '#f5f5f5' } }}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Surname"
-          {...register('surname', { required: 'Surname is required' })}
-          error={!!errors.surname}
-          helperText={errors.surname?.message}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Surname"
+                  {...register('surname', { required: 'Surname is required' })}
+                  error={!!errors.surname}
+                  helperText={errors.surname?.message}
           InputProps={{ readOnly: true }}
           sx={{ '& .MuiInputBase-input': { backgroundColor: '#f5f5f5' } }}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Middle Name(s)"
-          {...register('middleName')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Middle Name(s)"
+                  {...register('middleName')}
           InputProps={{ readOnly: true }}
           sx={{ '& .MuiInputBase-input': { backgroundColor: '#f5f5f5' } }}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Maiden Name"
-          {...register('maidenName')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Maiden Name"
+                  {...register('maidenName')}
           InputProps={{ readOnly: true }}
           sx={{ '& .MuiInputBase-input': { backgroundColor: '#f5f5f5' } }}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Date of Birth"
-          type="date"
-          InputLabelProps={{ shrink: true }}
-          {...register('dateOfBirth')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Date of Birth"
+                  type="date"
+                  InputLabelProps={{ shrink: true }}
+                  {...register('dateOfBirth')}
           InputProps={{ readOnly: true }}
           sx={{ '& .MuiInputBase-input': { backgroundColor: '#f5f5f5' } }}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth>
-          <InputLabel>Gender</InputLabel>
-          <Select {...register('gender')} label="Gender">
-            <MenuItem value="Male">Male</MenuItem>
-            <MenuItem value="Female">Female</MenuItem>
-            <MenuItem value="Other">Other</MenuItem>
-          </Select>
-        </FormControl>
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Nationality"
-          {...register('nationality')}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Gender</InputLabel>
+                  <Select {...register('gender')} label="Gender">
+                    <MenuItem value="Male">Male</MenuItem>
+                    <MenuItem value="Female">Female</MenuItem>
+                    <MenuItem value="Other">Other</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Nationality"
+                  {...register('nationality')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
           label="Place of Birth"
-          {...register('placeOfBirth')}
-        />
-      </Grid>
+                  {...register('placeOfBirth')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Marital Status</InputLabel>
+                  <Select {...register('maritalStatus')} label="Marital Status">
+                    <MenuItem value="Single">Single</MenuItem>
+                    <MenuItem value="Married">Married</MenuItem>
+                    <MenuItem value="Divorced">Divorced</MenuItem>
+                    <MenuItem value="Widowed">Widowed</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Number of Dependents"
+                  type="number"
+                  {...register('numberOfDependents')}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Residential Address"
+                  multiline
+                  rows={2}
+                  {...register('residentialAddress')}
+                />
+              </Grid>
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth>
-          <InputLabel>Marital Status</InputLabel>
-          <Select {...register('maritalStatus')} label="Marital Status">
-            <MenuItem value="Single">Single</MenuItem>
-            <MenuItem value="Married">Married</MenuItem>
-            <MenuItem value="Divorced">Divorced</MenuItem>
-            <MenuItem value="Widowed">Widowed</MenuItem>
-          </Select>
-        </FormControl>
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Number of Dependents"
-          type="number"
-          {...register('numberOfDependents')}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          fullWidth
-          label="Residential Address"
-          multiline
-          rows={2}
-          {...register('residentialAddress')}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Postal Address"
-          {...register('postalAddress')}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Landmark"
-          {...register('landmark')}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth>
-          <InputLabel>Residential Status</InputLabel>
-          <Select {...register('residentialStatus')} label="Residential Status">
+                <TextField
+                  fullWidth
+                  label="Postal Address"
+                  {...register('postalAddress')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Landmark"
+                  {...register('landmark')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Residential Status</InputLabel>
+                  <Select {...register('residentialStatus')} label="Residential Status">
             <MenuItem value="Owned">Owned</MenuItem>
             <MenuItem value="Rented">Rented</MenuItem>
-            <MenuItem value="Family">Family</MenuItem>
-            <MenuItem value="Other">Other</MenuItem>
-          </Select>
-        </FormControl>
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Years at Current Address"
-          type="number"
-          {...register('yearsAtCurrentAddress')}
-        />
-      </Grid>
+                    <MenuItem value="Family">Family</MenuItem>
+                    <MenuItem value="Other">Other</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Years at Current Address"
+                  type="number"
+                  {...register('yearsAtCurrentAddress')}
+                />
+              </Grid>
     </>
   );
 
   const renderStep3 = () => (
     <>
-      {/* Identification */}
+              {/* Identification */}
       <Grid item xs={12}>
         <Typography variant="h6" gutterBottom color="primary" sx={{ 
           fontWeight: 600, 
@@ -619,10 +645,10 @@ const LoanManagement = () => {
         }}>
           Identification
         </Typography>
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth>
-          <InputLabel>ID Type</InputLabel>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>ID Type</InputLabel>
           <Select 
             {...register('idType')} 
             label="ID Type"
@@ -630,20 +656,20 @@ const LoanManagement = () => {
             onChange={(e) => setSelectedIdType(e.target.value)}
           >
             <MenuItem value="">Select ID Type...</MenuItem>
-            <MenuItem value="National ID">National ID</MenuItem>
-            <MenuItem value="Voter ID">Voter ID</MenuItem>
-            <MenuItem value="Driver's Licence">Driver's Licence</MenuItem>
-            <MenuItem value="Passport">Passport</MenuItem>
-          </Select>
-        </FormControl>
-      </Grid>
+                    <MenuItem value="National ID">National ID</MenuItem>
+                    <MenuItem value="Voter ID">Voter ID</MenuItem>
+                    <MenuItem value="Driver's Licence">Driver's Licence</MenuItem>
+                    <MenuItem value="Passport">Passport</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
       
       {/* Conditional ID fields */}
       {(selectedIdType === 'National ID' || selectedIdType === 'Voter ID') && (
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="ID Number"
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="ID Number"
             {...register('idNumber', { required: 'ID Number is required' })}
             error={!!errors.idNumber}
             helperText={errors.idNumber?.message}
@@ -660,38 +686,38 @@ const LoanManagement = () => {
               {...register('licenseNumber', { required: 'License Number is required' })}
               error={!!errors.licenseNumber}
               helperText={errors.licenseNumber?.message}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Issue Date"
-              type="date"
-              InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Issue Date"
+                  type="date"
+                  InputLabelProps={{ shrink: true }}
               {...register('idIssueDate', { required: 'Issue Date is required' })}
               error={!!errors.idIssueDate}
               helperText={errors.idIssueDate?.message}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Expiry Date"
-              type="date"
-              InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Expiry Date"
+                  type="date"
+                  InputLabelProps={{ shrink: true }}
               {...register('idExpiryDate', { required: 'Expiry Date is required' })}
               error={!!errors.idExpiryDate}
               helperText={errors.idExpiryDate?.message}
-            />
-          </Grid>
+                />
+              </Grid>
         </>
       )}
       
       {selectedIdType === 'Passport' && (
         <>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
               label="Passport ID Number"
               {...register('passportNumber', { required: 'Passport Number is required' })}
               error={!!errors.passportNumber}
@@ -769,9 +795,9 @@ const LoanManagement = () => {
             </Button>
           </Grid>
         </Grid>
-      </Grid>
+              </Grid>
 
-      {/* Contact Information */}
+              {/* Contact Information */}
       <Grid item xs={12} sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom color="primary" sx={{ 
           fontWeight: 600, 
@@ -781,11 +807,11 @@ const LoanManagement = () => {
         }}>
           Contact Information
         </Typography>
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Mobile Number"
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Mobile Number"
           {...register('mobileNumber', { 
             required: 'Mobile number is required',
             validate: validatePhoneNumber 
@@ -793,20 +819,20 @@ const LoanManagement = () => {
           error={!!errors.mobileNumber}
           helperText={errors.mobileNumber?.message || 'Enter 10-digit phone number (required)'}
           placeholder="0241234567"
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
           label="Email Address (Optional)"
-          type="email"
-          {...register('emailAddress')}
+                  type="email"
+                  {...register('emailAddress')}
           helperText="Optional - Leave blank if not available"
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
           label="Telephone (Home) - Optional"
           {...register('telephoneHome', { 
             validate: validatePhoneNumber 
@@ -814,11 +840,11 @@ const LoanManagement = () => {
           error={!!errors.telephoneHome}
           helperText={errors.telephoneHome?.message || 'Enter 10-digit phone number (optional)'}
           placeholder="0241234567"
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
           label="Telephone (Office) - Optional"
           {...register('telephoneOffice', { 
             validate: validatePhoneNumber 
@@ -826,14 +852,14 @@ const LoanManagement = () => {
           error={!!errors.telephoneOffice}
           helperText={errors.telephoneOffice?.message || 'Enter 10-digit phone number (optional)'}
           placeholder="0241234567"
-        />
-      </Grid>
+                />
+              </Grid>
     </>
   );
 
   const renderStep4 = () => (
     <>
-      {/* Employment Details */}
+              {/* Employment Details */}
       <Grid item xs={12}>
         <Typography variant="h6" gutterBottom color="primary" sx={{ 
           fontWeight: 600, 
@@ -843,7 +869,7 @@ const LoanManagement = () => {
         }}>
           Employment Details
         </Typography>
-      </Grid>
+              </Grid>
       <Grid item xs={12} sm={6}>
         <FormControl fullWidth>
           <InputLabel>Employment Type *</InputLabel>
@@ -866,9 +892,9 @@ const LoanManagement = () => {
         <>
           {/* Self Employed Fields */}
           {employmentType === 'self_employed' && (
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
                 label="Years in Current Business"
                 type="number"
                 {...register('yearsInCurrentJob', { 
@@ -877,8 +903,8 @@ const LoanManagement = () => {
                 })}
                 error={!!errors.yearsInCurrentJob}
                 helperText={errors.yearsInCurrentJob?.message}
-              />
-            </Grid>
+                />
+              </Grid>
           )}
 
           {/* Salaried/Employed Fields */}
@@ -923,7 +949,7 @@ const LoanManagement = () => {
                   <Button 
                     variant="outlined" 
                     component="label" 
-                    fullWidth
+                  fullWidth
                     sx={{
                       height: '48px',
                       textAlign: 'left',
@@ -948,7 +974,7 @@ const LoanManagement = () => {
                       }}
                     />
                   </Button>
-                </Grid>
+              </Grid>
               ))}
             </Grid>
           </Grid>
@@ -959,7 +985,7 @@ const LoanManagement = () => {
 
   const renderStep5 = () => (
     <>
-      {/* Loan Request */}
+              {/* Loan Request */}
       <Grid item xs={12}>
         <Typography variant="h6" gutterBottom color="primary" sx={{ 
           fontWeight: 600, 
@@ -969,20 +995,20 @@ const LoanManagement = () => {
         }}>
           Loan Request
         </Typography>
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Amount Requested"
-          type="number"
-          step="0.01"
-          {...register('amount', { 
-            required: 'Amount is required', 
-            min: { value: 1, message: 'Amount must be greater than 0' },
-            max: { value: 1000000, message: 'Amount cannot exceed 1,000,000' }
-          })}
-          error={!!errors.amount}
-          helperText={errors.amount?.message}
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Amount Requested"
+                  type="number"
+                  step="0.01"
+                  {...register('amount', { 
+                    required: 'Amount is required', 
+                    min: { value: 1, message: 'Amount must be greater than 0' },
+                    max: { value: 1000000, message: 'Amount cannot exceed 1,000,000' }
+                  })}
+                  error={!!errors.amount}
+                  helperText={errors.amount?.message}
           onChange={(e) => {
             const amount = parseFloat(e.target.value) || 0;
             const duration = parseFloat(getValues('durationMonths')) || 0;
@@ -990,21 +1016,21 @@ const LoanManagement = () => {
               calculateInterest(amount, duration);
             }
           }}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Loan Duration (months)"
-          type="number"
-          {...register('durationMonths', { 
-            required: 'Duration is required', 
-            min: { value: 1, message: 'Duration must be at least 1 month' },
-            max: { value: 360, message: 'Duration cannot exceed 30 years' }
-          })}
-          error={!!errors.durationMonths}
-          helperText={errors.durationMonths?.message}
-          onChange={(e) => {
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Loan Duration (months)"
+                  type="number"
+                  {...register('durationMonths', { 
+                    required: 'Duration is required', 
+                    min: { value: 1, message: 'Duration must be at least 1 month' },
+                    max: { value: 360, message: 'Duration cannot exceed 30 years' }
+                  })}
+                  error={!!errors.durationMonths}
+                  helperText={errors.durationMonths?.message}
+                            onChange={(e) => {
             const amount = parseFloat(getValues('amount')) || 0;
             const duration = parseFloat(e.target.value) || 0;
             if (amount > 0 && duration > 0) {
@@ -1012,7 +1038,7 @@ const LoanManagement = () => {
             }
           }}
         />
-      </Grid>
+                      </Grid>
       
       {/* Interest Calculation Display */}
       <Grid item xs={12} sm={6}>
@@ -1023,7 +1049,7 @@ const LoanManagement = () => {
           InputProps={{ readOnly: true }}
           helperText="Fixed rate for all loans"
         />
-      </Grid>
+                  </Grid>
       <Grid item xs={12} sm={6}>
         <TextField
           fullWidth
@@ -1032,7 +1058,7 @@ const LoanManagement = () => {
           InputProps={{ readOnly: true }}
           helperText="Simple Interest for the duration"
         />
-      </Grid>
+                </Grid>
       <Grid item xs={12} sm={6}>
         <TextField
           fullWidth
@@ -1048,26 +1074,26 @@ const LoanManagement = () => {
           }}
         />
       </Grid>
-      <Grid item xs={12}>
-        <TextField
-          fullWidth
-          label="Purpose of Loan"
-          multiline
-          rows={2}
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Purpose of Loan"
+                  multiline
+                  rows={2}
           {...register('purpose', { required: 'Purpose of loan is required' })}
           error={!!errors.purpose}
           helperText={errors.purpose?.message}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Customer Account Number (if already a customer)"
-          {...register('customerAccountNumber')}
-        />
-      </Grid>
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Customer Account Number (if already a customer)"
+                  {...register('customerAccountNumber')}
+                />
+              </Grid>
 
-      {/* Next of Kin / Emergency Contact */}
+              {/* Next of Kin / Emergency Contact */}
       <Grid item xs={12} sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom color="primary" sx={{ 
           fontWeight: 600, 
@@ -1077,30 +1103,30 @@ const LoanManagement = () => {
         }}>
           Next of Kin / Emergency Contact
         </Typography>
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Contact Person Name"
-          {...register('contactPersonName')}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Relationship to Applicant"
-          {...register('relationshipToApplicant')}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Phone Number of Contact"
-          {...register('contactPersonPhone')}
-        />
-      </Grid>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Contact Person Name"
+                  {...register('contactPersonName')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Relationship to Applicant"
+                  {...register('relationshipToApplicant')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Phone Number of Contact"
+                  {...register('contactPersonPhone')}
+                />
+              </Grid>
 
-      {/* Financial / Income Details */}
+              {/* Financial / Income Details */}
       <Grid item xs={12} sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom color="primary" sx={{ 
           fontWeight: 600, 
@@ -1110,58 +1136,58 @@ const LoanManagement = () => {
         }}>
           Financial / Income Details
         </Typography>
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Gross Annual Income"
-          type="number"
-          step="0.01"
-          {...register('grossAnnualIncome')}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Net Monthly Income"
-          type="number"
-          step="0.01"
-          {...register('netMonthlyIncome')}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Monthly Expenses"
-          type="number"
-          step="0.01"
-          {...register('monthlyExpenses')}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Disposable Income"
-          type="number"
-          step="0.01"
-          {...register('disposableIncome')}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          fullWidth
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Gross Annual Income"
+                  type="number"
+                  step="0.01"
+                  {...register('grossAnnualIncome')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Net Monthly Income"
+                  type="number"
+                  step="0.01"
+                  {...register('netMonthlyIncome')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Monthly Expenses"
+                  type="number"
+                  step="0.01"
+                  {...register('monthlyExpenses')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Disposable Income"
+                  type="number"
+                  step="0.01"
+                  {...register('disposableIncome')}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
           label="Existing Loans (Lender, Amount, Monthly Payment)"
-          multiline
-          rows={2}
-          {...register('existingLoans')}
-        />
-      </Grid>
+                  multiline
+                  rows={2}
+                  {...register('existingLoans')}
+                />
+              </Grid>
     </>
   );
 
   const renderStep6 = () => (
     <>
-      {/* Collateral Information */}
+              {/* Collateral Information */}
       <Grid item xs={12}>
         <Typography variant="h6" gutterBottom color="primary" sx={{ 
           fontWeight: 600, 
@@ -1171,19 +1197,19 @@ const LoanManagement = () => {
         }}>
           Collateral Information
         </Typography>
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          fullWidth
-          label="Collateral Details"
-          multiline
-          rows={3}
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Collateral Details"
+                  multiline
+                  rows={3}
           {...register('collateralDescription', { required: 'Collateral details are required' })}
           error={!!errors.collateralDescription}
           helperText={errors.collateralDescription?.message}
           placeholder="Describe the collateral being provided (e.g., property address, vehicle details, etc.)"
-        />
-      </Grid>
+                />
+              </Grid>
       
       {/* Collateral Document Upload */}
       <Grid item xs={12} sx={{ mt: 3 }}>
@@ -1256,7 +1282,7 @@ const LoanManagement = () => {
         )}
       </Grid>
 
-      {/* Guarantor Information */}
+              {/* Guarantor Information */}
       <Grid item xs={12} sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom color="primary" sx={{ 
           fontWeight: 600, 
@@ -1266,23 +1292,68 @@ const LoanManagement = () => {
         }}>
           Guarantor Information
         </Typography>
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Guarantor Name"
+          {...register('guarantorName', { 
+            required: 'Guarantor name is required' 
+          })}
+          error={!!errors.guarantorName}
+          helperText={errors.guarantorName?.message}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Guarantor Contact"
+          {...register('guarantorContact', { 
+            required: 'Guarantor contact is required',
+            validate: validatePhoneNumber 
+          })}
+          error={!!errors.guarantorContact}
+          helperText={errors.guarantorContact?.message || 'Enter 10-digit phone number (required)'}
+          placeholder="0241234567"
+                />
+              </Grid>
+      
+      {/* Guarantor ID Card Upload */}
+      <Grid item xs={12}>
+        <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, color: '#2a8a67', mt: 2 }}>
+          Guarantor ID Card *
+        </Typography>
+        <Button 
+          variant="outlined" 
+          component="label" 
           fullWidth
-          label="Guarantor Name"
-          {...register('guarantorName')}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Guarantor Contact"
-          {...register('guarantorContact')}
-        />
+          sx={{
+            height: '48px',
+            textAlign: 'left',
+            justifyContent: 'flex-start',
+            padding: '12px 16px',
+            borderColor: '#3eb489',
+            color: '#3eb489',
+            '&:hover': {
+              borderColor: '#2a8a67',
+              backgroundColor: '#f4fcf9'
+            }
+          }}
+        >
+          {documents['Guarantor ID Card']?.name || `Upload: Guarantor ID Card`}
+          <input
+            hidden
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) setDocuments(prev => ({ ...prev, 'Guarantor ID Card': file }));
+            }}
+          />
+        </Button>
       </Grid>
 
-      {/* Declaration & Consent */}
+              {/* Declaration & Consent */}
       <Grid item xs={12} sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom color="primary" sx={{ 
           fontWeight: 600, 
@@ -1292,19 +1363,19 @@ const LoanManagement = () => {
         }}>
           Declaration & Consent
         </Typography>
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Signature Date"
-          type="date"
-          InputLabelProps={{ shrink: true }}
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Signature Date"
+                  type="date"
+                  InputLabelProps={{ shrink: true }}
           {...register('signatureDate', { required: 'Signature date is required' })}
           error={!!errors.signatureDate}
           helperText={errors.signatureDate?.message}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
         <FormControlLabel
           control={
             <Checkbox
@@ -1329,8 +1400,8 @@ const LoanManagement = () => {
             }
           }}
         />
-      </Grid>
-      <Grid item xs={12} sm={6}>
+              </Grid>
+              <Grid item xs={12} sm={6}>
         <FormControlLabel
           control={
             <Checkbox
@@ -1355,20 +1426,161 @@ const LoanManagement = () => {
             }
           }}
         />
+              </Grid>
+      <Grid item xs={12}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={termsAccepted}
+              onChange={(e) => setTermsAccepted(e.target.checked)}
+              color="primary"
+              sx={{ 
+                color: '#3eb489',
+                '&.Mui-checked': {
+                  color: '#3eb489'
+                }
+              }}
+            />
+          }
+          label={
+            <Box display="flex" alignItems="center" gap={1}>
+              <Typography variant="body2">
+                I have read and agree to the 
+              </Typography>
+              <Button
+                variant="text"
+                size="small"
+                onClick={handleOpenTermsModal}
+                sx={{
+                  color: '#3eb489',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  padding: 0,
+                  minWidth: 'auto',
+                  '&:hover': {
+                    backgroundColor: 'transparent',
+                    textDecoration: 'underline'
+                  }
+                }}
+              >
+                Terms and Conditions
+              </Button>
+              <Typography variant="body2">
+                and understand the consequences of loan default
+              </Typography>
+            </Box>
+          }
+          sx={{ 
+            mt: 2,
+            alignItems: 'flex-start',
+            '& .MuiFormControlLabel-label': {
+              marginTop: '4px',
+              lineHeight: 1.4
+            }
+          }}
+        />
       </Grid>
     </>
   );
 
-  const handleOpenActionDialog = (loan, type) => {
+  const handleOpenActionDialog = async (loan, type) => {
     console.log('=== handleOpenActionDialog CALLED ===');
     console.log('Loan:', loan);
     console.log('Action type:', type);
     setSelectedLoan(loan);
     setActionType(type);
     resetAction(); // Reset the action form
+    
+    // If viewing documents, fetch them first
+    if (type === 'ViewDocuments') {
+      await fetchLoanDocuments(loan.id);
+    }
+    
     setOpenActionDialog(true);
     setAnchorEl(null);
     console.log('Action dialog opened');
+  };
+
+  const fetchLoanDocuments = async (loanId) => {
+    try {
+      setLoadingDocuments(true);
+      const response = await axios.get(`/api/loans/${loanId}/documents`);
+      setLoanDocuments(response.data || []);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      setSnackbar({ open: true, message: 'Error fetching documents', severity: 'error' });
+      setLoanDocuments([]);
+    } finally {
+      setLoadingDocuments(false);
+    }
+  };
+
+  const downloadDocument = async (documentId, fileName) => {
+    try {
+      const response = await axios.get(`/api/documents/${documentId}/download`, {
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      setSnackbar({ open: true, message: 'Error downloading document', severity: 'error' });
+    }
+  };
+
+  const [viewingDocument, setViewingDocument] = useState(null);
+  const [documentViewerOpen, setDocumentViewerOpen] = useState(false);
+
+  const viewDocument = async (documentId, fileName) => {
+    try {
+      const response = await axios.get(`/api/documents/${documentId}/view`, {
+        responseType: 'blob'
+      });
+      
+      // Create blob with proper MIME type for PDFs
+      const blob = new Blob([response.data], { 
+        type: fileName.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream' 
+      });
+      const url = window.URL.createObjectURL(blob);
+      setViewingDocument({ url, fileName });
+      setDocumentViewerOpen(true);
+    } catch (error) {
+      console.error('Error viewing document:', error);
+      setSnackbar({ open: true, message: 'Error opening document', severity: 'error' });
+    }
+  };
+
+  const getDocumentIcon = (fileName) => {
+    const extension = fileName.split('.').pop().toLowerCase();
+    switch (extension) {
+      case 'pdf':
+        return <PictureAsPdf sx={{ color: '#d32f2f', fontSize: 24 }} />;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+        return <Image sx={{ color: '#1976d2', fontSize: 24 }} />;
+      case 'doc':
+      case 'docx':
+        return <Description sx={{ color: '#1976d2', fontSize: 24 }} />;
+      default:
+        return <Description sx={{ color: '#666', fontSize: 24 }} />;
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
   const handleCloseActionDialog = () => {
@@ -1420,6 +1632,11 @@ const LoanManagement = () => {
         return;
       }
 
+      if (!documents['Guarantor ID Card']) {
+        setSnackbar({ open: true, message: 'Please upload guarantor ID card', severity: 'error' });
+        return;
+      }
+
       const requiredDocs = loanTypesConfig[selectedLoanType]?.requiredDocuments || [];
       const missing = requiredDocs.filter(label => !documents[label]);
       if (missing.length > 0) {
@@ -1440,7 +1657,14 @@ const LoanManagement = () => {
         loanType: selectedLoanType,
         customerId: selectedCustomerId ? parseInt(selectedCustomerId) : null,
         interestRate: 5.0, // Fixed 5% interest rate
-        amount: parseFloat(data.amount) || 0
+        amount: parseFloat(data.amount) || 0,
+        employmentType: employmentType,
+        informationCorrect: informationCorrect,
+        authorizationDebit: authorizationDebit,
+        termsAccepted: termsAccepted,
+        // Explicitly set guarantor fields to prevent auto-fill
+        guarantorName: data.guarantorName || '',
+        guarantorContact: data.guarantorContact || ''
       };
       
       console.log('Loan creation payload:', payload);
@@ -1466,12 +1690,22 @@ const LoanManagement = () => {
           formData.append('files', file, `collateral_${index}_${file.name}`);
         });
         
+        // Upload guarantor ID card
+        if (documents['Guarantor ID Card']) {
+          formData.append('files', documents['Guarantor ID Card'], documents['Guarantor ID Card'].name);
+        }
+        
         // Create labels array
         const allLabels = [
           ...requiredDocs, 
           ...employmentDocs, 
           ...collateralDocuments.map((_, index) => `Collateral Document ${index + 1}`)
         ];
+        
+        // Add guarantor ID card label if uploaded
+        if (documents['Guarantor ID Card']) {
+          allLabels.push('Guarantor ID Card');
+        }
         formData.append('labels', JSON.stringify(allLabels));
         
         try {
@@ -1635,14 +1869,30 @@ const LoanManagement = () => {
   }, [user?.role]);
 
   const filteredLoans = Array.isArray(loans) ? loans.filter(loan => {
+    // Filter by tab (status)
+    let statusMatch = false;
     switch (tabValue) {
-      case 0: return loan.status === 'PENDING';
-      case 1: return loan.status === 'VERIFIED';
-      case 2: return loan.status === 'APPROVED';
-      case 3: return loan.status === 'REJECTED';
-      case 4: return loan.status === 'DISBURSED';
-      default: return true;
+      case 0: statusMatch = loan.status === 'PENDING'; break;
+      case 1: statusMatch = loan.status === 'VERIFIED'; break;
+      case 2: statusMatch = loan.status === 'APPROVED'; break;
+      case 3: statusMatch = loan.status === 'REJECTED'; break;
+      case 4: statusMatch = loan.status === 'DISBURSED'; break;
+      default: statusMatch = true; break;
     }
+    
+    // Filter by search term
+    let searchMatch = true;
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      searchMatch = 
+        loan.loanNumber?.toLowerCase().includes(searchLower) ||
+        loan.customer?.name?.toLowerCase().includes(searchLower) ||
+        loan.customer?.fullName?.toLowerCase().includes(searchLower) ||
+        loan.customer?.firstName?.toLowerCase().includes(searchLower) ||
+        loan.customer?.lastName?.toLowerCase().includes(searchLower);
+    }
+    
+    return statusMatch && searchMatch;
   }) : [];
 
   if (loading) {
@@ -1675,6 +1925,53 @@ const LoanManagement = () => {
           </Alert>
         </Box>
       )}
+
+      {/* Search Bar */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box display="flex" alignItems="center" gap={2}>
+            <TextField
+              fullWidth
+              variant="outlined"
+              placeholder="Search by Loan ID or Customer Name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: <Search sx={{ mr: 1, color: '#3eb489' }} />
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: '#3eb489',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: '#2a8a67',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#3eb489',
+                  },
+                }
+              }}
+            />
+            {searchTerm && (
+              <Button
+                variant="outlined"
+                onClick={() => setSearchTerm('')}
+                sx={{
+                  borderColor: '#3eb489',
+                  color: '#3eb489',
+                  '&:hover': {
+                    borderColor: '#2a8a67',
+                    backgroundColor: '#f4fcf9'
+                  }
+                }}
+              >
+                Clear
+              </Button>
+            )}
+          </Box>
+        </CardContent>
+      </Card>
 
       <Card sx={{ mb: 3 }}>
         <CardContent>
@@ -1910,25 +2207,25 @@ const LoanManagement = () => {
                 <Button 
                   type="submit" 
                   variant="contained"
-                  disabled={!informationCorrect || !authorizationDebit || !employmentType || collateralDocuments.length === 0}
+                  disabled={!informationCorrect || !authorizationDebit || !termsAccepted || !employmentType || collateralDocuments.length === 0 || !documents['Guarantor ID Card']}
                   sx={{
-                    background: (!informationCorrect || !authorizationDebit || !employmentType || collateralDocuments.length === 0) 
+                    background: (!informationCorrect || !authorizationDebit || !termsAccepted || !employmentType || collateralDocuments.length === 0 || !documents['Guarantor ID Card']) 
                       ? 'linear-gradient(135deg, #cccccc 0%, #999999 100%)'
                       : 'linear-gradient(135deg, #3eb489 0%, #52c9a0 100%)',
                     color: 'white',
                     padding: '10px 32px',
                     fontWeight: 600,
-                    boxShadow: (!informationCorrect || !authorizationDebit || !employmentType || collateralDocuments.length === 0) 
+                    boxShadow: (!informationCorrect || !authorizationDebit || !termsAccepted || !employmentType || collateralDocuments.length === 0 || !documents['Guarantor ID Card']) 
                       ? 'none'
                       : '0 2px 6px rgba(62, 180, 137, 0.15)',
                     '&:hover': {
-                      background: (!informationCorrect || !authorizationDebit || !employmentType || collateralDocuments.length === 0)
+                      background: (!informationCorrect || !authorizationDebit || !termsAccepted || !employmentType || collateralDocuments.length === 0 || !documents['Guarantor ID Card'])
                         ? 'linear-gradient(135deg, #cccccc 0%, #999999 100%)'
                         : 'linear-gradient(135deg, #2a8a67 0%, #3eb489 100%)',
-                      boxShadow: (!informationCorrect || !authorizationDebit || !employmentType || collateralDocuments.length === 0)
+                      boxShadow: (!informationCorrect || !authorizationDebit || !termsAccepted || !employmentType || collateralDocuments.length === 0 || !documents['Guarantor ID Card'])
                         ? 'none'
                         : '0 4px 12px rgba(62, 180, 137, 0.25)',
-                      transform: (!informationCorrect || !authorizationDebit || !employmentType || collateralDocuments.length === 0)
+                      transform: (!informationCorrect || !authorizationDebit || !termsAccepted || !employmentType || collateralDocuments.length === 0 || !documents['Guarantor ID Card'])
                         ? 'none'
                         : 'translateY(-1px)'
                     },
@@ -2017,10 +2314,60 @@ const LoanManagement = () => {
             {actionType === 'ViewDocuments' ? (
               <Box sx={{ mt: 2 }}>
                 <Typography variant="h6" gutterBottom>Uploaded Documents</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Document viewing functionality will be implemented here.
-                </Typography>
-                {/* TODO: Implement document viewing */}
+                {loadingDocuments ? (
+                  <Typography variant="body2" color="text.secondary">
+                    Loading documents...
+                  </Typography>
+                ) : loanDocuments.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary">
+                    No documents uploaded for this loan.
+                  </Typography>
+                ) : (
+                  <Box sx={{ mt: 2 }}>
+                    {loanDocuments.map((doc) => (
+                      <Box key={doc.id} sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between',
+                        p: 2, 
+                        mb: 1, 
+                        border: '1px solid #e0e0e0', 
+                        borderRadius: 1,
+                        backgroundColor: '#f9f9f9'
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                          {getDocumentIcon(doc.fileName)}
+                          <Box sx={{ ml: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {doc.fileName}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              {doc.documentType} • {formatFileSize(doc.fileSize)}
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => viewDocument(doc.id, doc.fileName)}
+                            sx={{ minWidth: 'auto', px: 1 }}
+                          >
+                            View
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            onClick={() => downloadDocument(doc.id, doc.fileName)}
+                            sx={{ minWidth: 'auto', px: 1 }}
+                          >
+                            Download
+                          </Button>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
               </Box>
             ) : (
             <TextField
@@ -2426,6 +2773,125 @@ const LoanManagement = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Terms and Conditions Modal */}
+      <Dialog 
+        open={termsModalOpen} 
+        onClose={handleCloseTermsModal}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)'
+          }
+        }}
+      >
+        <DialogTitle sx={{
+          background: 'linear-gradient(135deg, #3eb489 0%, #52c9a0 100%)',
+          color: 'white',
+          textAlign: 'center',
+          padding: '24px',
+          fontWeight: 600,
+          fontSize: '1.5rem'
+        }}>
+          Terms and Conditions
+        </DialogTitle>
+        <DialogContent sx={{ padding: '32px', maxHeight: '60vh', overflow: 'auto' }}>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: '#2a8a67', mb: 2 }}>
+            Loan Agreement Terms
+          </Typography>
+          
+          <Typography variant="body1" paragraph sx={{ mb: 2 }}>
+            By accepting this loan, you agree to the following terms and conditions:
+          </Typography>
+
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: '#2a8a67', mt: 3, mb: 1 }}>
+            1. Loan Repayment
+          </Typography>
+          <Typography variant="body2" paragraph sx={{ mb: 2 }}>
+            • You are required to make monthly payments on or before the due date specified in your loan agreement.<br/>
+            • Late payments will incur additional charges as outlined in the loan schedule.<br/>
+            • Failure to make payments may result in legal action to recover the outstanding amount.
+          </Typography>
+
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: '#2a8a67', mt: 3, mb: 1 }}>
+            2. Consequences of Loan Default
+          </Typography>
+          <Typography variant="body2" paragraph sx={{ mb: 2 }}>
+            <strong>If you default on your loan payments, the following actions may be taken:</strong><br/><br/>
+            • <strong>Credit Score Impact:</strong> Your credit score will be severely affected, making it difficult to obtain future loans, credit cards, or mortgages.<br/><br/>
+            • <strong>Legal Action:</strong> We may pursue legal action to recover the outstanding amount, including court proceedings and asset seizure.<br/><br/>
+            • <strong>Asset Seizure:</strong> Any collateral provided may be seized and sold to recover the loan amount.<br/><br/>
+            • <strong>Blacklisting:</strong> Your name may be reported to credit bureaus and financial institutions, affecting your ability to access financial services.<br/><br/>
+            • <strong>Additional Costs:</strong> You will be responsible for all legal fees, collection costs, and additional interest accrued during the default period.<br/><br/>
+            • <strong>Garnishment:</strong> Your wages or bank accounts may be garnished to recover outstanding amounts.<br/><br/>
+            • <strong>Property Liens:</strong> Liens may be placed on your property until the debt is fully satisfied.
+          </Typography>
+
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: '#2a8a67', mt: 3, mb: 1 }}>
+            3. Interest and Fees
+          </Typography>
+          <Typography variant="body2" paragraph sx={{ mb: 2 }}>
+            • Interest will accrue on the outstanding principal amount at the rate specified in your loan agreement.<br/>
+            • Additional fees may apply for late payments, returned checks, or account maintenance.
+          </Typography>
+
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: '#2a8a67', mt: 3, mb: 1 }}>
+            4. Right to Information
+          </Typography>
+          <Typography variant="body2" paragraph sx={{ mb: 2 }}>
+            • You have the right to request a statement of your account at any time.<br/>
+            • You must notify us immediately of any change in your contact information or financial circumstances.
+          </Typography>
+
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: '#2a8a67', mt: 3, mb: 1 }}>
+            5. Governing Law
+          </Typography>
+          <Typography variant="body2" paragraph sx={{ mb: 2 }}>
+            This agreement is governed by the laws of Ghana and any disputes will be resolved in the courts of Ghana.
+          </Typography>
+
+          <Alert severity="warning" sx={{ mt: 3, backgroundColor: '#fff3cd', borderColor: '#ffeaa7' }}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              <strong>Important:</strong> Please read and understand all terms before accepting this loan. 
+              Defaulting on your loan will have serious financial and legal consequences that may affect your future financial opportunities.
+            </Typography>
+          </Alert>
+        </DialogContent>
+        <DialogActions sx={{ padding: '16px 32px', gap: 2 }}>
+          <Button 
+            onClick={handleCloseTermsModal}
+            variant="outlined"
+            sx={{
+              borderColor: '#b8e6d5',
+              color: '#2a8a67',
+              '&:hover': {
+                borderColor: '#3eb489',
+                backgroundColor: '#f4fcf9'
+              }
+            }}
+          >
+            Close
+          </Button>
+          <Button 
+            onClick={() => {
+              setTermsAccepted(true);
+              handleCloseTermsModal();
+            }}
+            variant="contained"
+            sx={{
+              background: 'linear-gradient(135deg, #3eb489 0%, #52c9a0 100%)',
+              color: 'white',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #2a8a67 0%, #3eb489 100%)'
+              }
+            }}
+          >
+            I Accept Terms
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
@@ -2439,6 +2905,120 @@ const LoanManagement = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Document Viewer Modal */}
+      <Dialog
+        open={documentViewerOpen}
+        onClose={() => {
+          setDocumentViewerOpen(false);
+          if (viewingDocument?.url) {
+            window.URL.revokeObjectURL(viewingDocument.url);
+          }
+          setViewingDocument(null);
+        }}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            height: '90vh',
+            maxHeight: '90vh'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          backgroundColor: '#f5f5f5',
+          borderBottom: '1px solid #e0e0e0'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {viewingDocument && getDocumentIcon(viewingDocument.fileName)}
+            <Typography variant="h6" sx={{ ml: 1 }}>
+              {viewingDocument?.fileName || 'Document Viewer'}
+            </Typography>
+          </Box>
+          <IconButton 
+            onClick={() => {
+              setDocumentViewerOpen(false);
+              if (viewingDocument?.url) {
+                window.URL.revokeObjectURL(viewingDocument.url);
+              }
+              setViewingDocument(null);
+            }}
+          >
+            <Cancel />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, height: '100%', overflow: 'hidden' }}>
+          {viewingDocument && (
+            <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              {viewingDocument.fileName.toLowerCase().endsWith('.pdf') ? (
+                <iframe
+                  src={`${viewingDocument.url}#toolbar=1&navpanes=1&scrollbar=1`}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    border: 'none'
+                  }}
+                  title={viewingDocument.fileName}
+                  type="application/pdf"
+                />
+              ) : viewingDocument.fileName.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/) ? (
+                <Box sx={{ 
+                  height: '100%', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  backgroundColor: '#f9f9f9',
+                  p: 2
+                }}>
+                  <img
+                    src={viewingDocument.url}
+                    alt={viewingDocument.fileName}
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      objectFit: 'contain',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+                      borderRadius: '8px'
+                    }}
+                  />
+                </Box>
+              ) : (
+                <Box sx={{ 
+                  height: '100%', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  flexDirection: 'column',
+                  backgroundColor: '#f9f9f9'
+                }}>
+                  <Description sx={{ fontSize: 64, color: '#666', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary" gutterBottom>
+                    Document Preview Not Available
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    This file type cannot be previewed in the browser.
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = viewingDocument.url;
+                      link.download = viewingDocument.fileName;
+                      link.click();
+                    }}
+                    startIcon={<Download />}
+                  >
+                    Download File
+                  </Button>
+                </Box>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };

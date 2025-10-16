@@ -37,7 +37,8 @@ import {
   Add,
   Save,
   PersonAdd,
-  SettingsApplications
+  SettingsApplications,
+  LockReset
 } from '@mui/icons-material';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
@@ -220,6 +221,29 @@ const AdminPanel = () => {
   const handleMenuClose = () => {
     setAnchorEl(null);
     setSelectedUser(null);
+  };
+
+  const handleResetPassword = async () => {
+    try {
+      if (!selectedUser) return;
+      
+      console.log('Resetting password for user:', selectedUser.id);
+      await axios.put(`/api/admin/users/${selectedUser.id}/reset-password`);
+      setSnackbar({ 
+        open: true, 
+        message: `Password reset successfully for ${selectedUser.username}. They will be prompted to change it on next login.`, 
+        severity: 'success' 
+      });
+      fetchData();
+    } catch (e) {
+      console.error('Reset password error:', e);
+      setSnackbar({ 
+        open: true, 
+        message: e.response?.data?.message || 'Error resetting password', 
+        severity: 'error' 
+      });
+    }
+    handleMenuClose();
   };
 
   const getRoleColor = (role) => {
@@ -701,6 +725,10 @@ const AdminPanel = () => {
         <MenuItem onClick={() => handleDeleteUser(selectedUser?.id)}>
           <Delete sx={{ mr: 1 }} />
           Delete
+        </MenuItem>
+        <MenuItem onClick={handleResetPassword}>
+          <LockReset sx={{ mr: 1 }} />
+          Reset Password
         </MenuItem>
         {/* Enable/Disable actions */}
         <MenuItem onClick={async () => {

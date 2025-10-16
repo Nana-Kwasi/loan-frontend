@@ -107,11 +107,7 @@ const Layout = ({ children }) => {
 
   const drawer = (
     <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div">
-          Loan Management System
-        </Typography>
-      </Toolbar>
+      <Toolbar />
       <List>
         {getMenuItems().map((item) => (
           <ListItem key={item.text} disablePadding>
@@ -138,6 +134,9 @@ const Layout = ({ children }) => {
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
+          backgroundColor: 'white',
+          color: 'text.primary',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
         }}
       >
         <Toolbar>
@@ -146,20 +145,31 @@ const Layout = ({ children }) => {
             aria-label="open drawer"
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
+            sx={{ mr: 2, display: { sm: 'none' }, color: 'text.primary' }}
           >
             <MenuIcon />
           </IconButton>
           
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {getMenuItems().find(item => item.path === location.pathname)?.text || 'Dashboard'}
-          </Typography>
-
-          <IconButton color="inherit">
-            <Badge badgeContent={4} color="error">
-              <Notifications />
-            </Badge>
-          </IconButton>
+          <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+            <Typography 
+              variant="h5" 
+              noWrap 
+              component="div" 
+              sx={{ 
+                color: 'text.primary', 
+                fontWeight: 700,
+                fontSize: '1.75rem',
+                letterSpacing: '0.5px',
+                background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}
+            >
+              Boa Nipa Micro Finance Limited
+            </Typography>
+          </Box>
 
           <IconButton
             size="large"
@@ -169,8 +179,9 @@ const Layout = ({ children }) => {
             aria-haspopup="true"
             onClick={handleProfileMenuOpen}
             color="inherit"
+            sx={{ color: 'text.primary' }}
           >
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
               {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
             </Avatar>
           </IconButton>

@@ -275,17 +275,26 @@ import {
   ListItem,
   ListItemText,
   Chip,
-  CircularProgress
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Button
 } from '@mui/material';
 import {
   AccountBalance,
   People,
   TrendingUp,
+  TrendingDown,
   Warning,
   CheckCircle,
   Schedule,
   Cancel,
-  AttachMoney
+  AttachMoney,
+  Assessment
 } from '@mui/icons-material';
 import {
   LineChart,
@@ -319,6 +328,7 @@ const Dashboard = () => {
     totalAmount: 0
   });
   const [recentLoans, setRecentLoans] = useState([]);
+  const [allLoans, setAllLoans] = useState([]);
   const [chartData, setChartData] = useState({
     statusData: [],
     monthlyData: [],
@@ -362,6 +372,7 @@ const Dashboard = () => {
         new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at)
       );
       setRecentLoans(sortedLoans.slice(0, 5));
+      setAllLoans(sortedLoans); // Store all loans for the table
 
       prepareChartData(loans);
       setLoading(false);
@@ -377,6 +388,7 @@ const Dashboard = () => {
         totalAmount: 0
       });
       setRecentLoans([]);
+      setAllLoans([]);
       setLoading(false);
     }
   };
@@ -542,6 +554,64 @@ const Dashboard = () => {
     </Card>
   );
 
+  const StatCard = ({ title, value, icon, color = 'primary', trend = null }) => (
+    <Card sx={{
+      background: 'white',
+      borderRadius: '12px',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      border: '1px solid #e5e7eb',
+      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+      '&:hover': {
+        transform: 'translateY(-2px)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.15)'
+      }
+    }}>
+      <CardContent sx={{ p: 3 }}>
+        <Box display="flex" alignItems="center" justifyContent="space-between">
+          <Box>
+            <Typography color="textSecondary" gutterBottom variant="h6" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
+              {title}
+            </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: '#1f2937' }}>
+              {value}
+            </Typography>
+            {trend && (
+              <Box display="flex" alignItems="center" mt={1}>
+                {trend > 0 ? <TrendingUp sx={{ mr: 0.5, color: '#10b981' }} /> : <TrendingDown sx={{ mr: 0.5, color: '#ef4444' }} />}
+                <Typography variant="body2" sx={{ color: trend > 0 ? '#10b981' : '#ef4444', fontWeight: 500 }}>
+                  {Math.abs(trend)}%
+                </Typography>
+              </Box>
+            )}
+          </Box>
+          <Box sx={{ color: getIconColor(color) }}>
+            {icon}
+          </Box>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+
+  const getIconColor = (color) => {
+    switch (color) {
+      case 'primary': return '#3b82f6'; // Blue
+      case 'success': return '#10b981'; // Green
+      case 'info': return '#06b6d4'; // Cyan
+      case 'warning': return '#f59e0b'; // Amber
+      default: return '#6b7280'; // Gray
+    }
+  };
+
+  const getCardGradient = (color) => {
+    switch (color) {
+      case 'primary': return '#667eea 0%, #764ba2 100%';
+      case 'success': return '#f093fb 0%, #f5576c 100%';
+      case 'info': return '#4facfe 0%, #00f2fe 100%';
+      case 'warning': return '#43e97b 0%, #38f9d7 100%';
+      default: return '#667eea 0%, #764ba2 100%';
+    }
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -568,69 +638,201 @@ const Dashboard = () => {
         >
           <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: '#374151' }}>
             Welcome back, {user?.firstName}! 👋
-          </Typography>
+      </Typography>
           <Typography variant="subtitle1" sx={{ color: '#6b7280' }}>
-            {user?.role?.replace('_', ' ')} • {user?.branch}
-          </Typography>
+        {user?.role?.replace('_', ' ')} • {user?.branch}
+      </Typography>
         </Box>
 
-        {/* Stats Cards with Circular Progress */}
-        <Grid container spacing={4} sx={{ mb: 5 }}>
-          <Grid item xs={12} sm={6} md={4} lg={2}>
-            <CircularStatCard
-              title="Total Loans"
-              value={stats.totalLoans}
-              icon={<AccountBalance />}
-              color="#7dd3c0"
-              percentage={100}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={4} lg={2}>
-            <CircularStatCard
-              title="Pending"
-              value={stats.pendingLoans}
-              icon={<Schedule />}
-              color="#fbbf24"
-              percentage={(stats.pendingLoans / totalLoansForPercentage) * 100}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={4} lg={2}>
-            <CircularStatCard
-              title="Approved"
-              value={stats.approvedLoans}
-              icon={<CheckCircle />}
-              color="#34d399"
-              percentage={(stats.approvedLoans / totalLoansForPercentage) * 100}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={4} lg={2}>
-            <CircularStatCard
-              title="Disbursed"
-              value={stats.disbursedLoans}
-              icon={<AttachMoney />}
-              color="#60a5fa"
-              percentage={(stats.disbursedLoans / totalLoansForPercentage) * 100}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={4} lg={2}>
-            <CircularStatCard
-              title="Rejected"
-              value={stats.rejectedLoans}
-              icon={<Cancel />}
-              color="#f87171"
-              percentage={(stats.rejectedLoans / totalLoansForPercentage) * 100}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={4} lg={2}>
-            <CircularStatCard
-              title="Customers"
-              value={stats.totalCustomers}
-              icon={<People />}
-              color="#a78bfa"
-              percentage={stats.totalCustomers > 0 ? 100 : 0}
+        {/* Key Metrics - KPI Cards */}
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Total Loans"
+            value={stats.totalLoans}
+              icon={<AccountBalance sx={{ fontSize: 40 }} />}
+            color="primary"
+          />
+        </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+              title="Total Amount"
+              value={`GHS ${stats.totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              icon={<AttachMoney sx={{ fontSize: 40 }} />}
+            color="success"
+          />
+        </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+              title="Approval Rate"
+              value={`${((stats.approvedLoans + stats.disbursedLoans) / Math.max(stats.totalLoans, 1) * 100).toFixed(1)}%`}
+              icon={<CheckCircle sx={{ fontSize: 40 }} />}
+              color="info"
+          />
+        </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+              title="Average Loan"
+              value={`GHS ${(stats.totalAmount / Math.max(stats.totalLoans, 1)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              icon={<TrendingUp sx={{ fontSize: 40 }} />}
+              color="warning"
             />
           </Grid>
         </Grid>
+
+        {/* Status Breakdown */}
+        <Grid container spacing={3} sx={{ mb: 5 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ borderRadius: '12px', borderLeft: '4px solid #ff9800' }}>
+              <CardContent>
+                <Box display="flex" alignItems="center" justifyContent="space-between">
+                  <Box>
+                    <Typography color="textSecondary" variant="body2">
+                      Pending
+                    </Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      {stats.pendingLoans}
+                    </Typography>
+                  </Box>
+                  <Schedule color="warning" sx={{ fontSize: 32 }} />
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ borderRadius: '12px', borderLeft: '4px solid #4caf50' }}>
+              <CardContent>
+                <Box display="flex" alignItems="center" justifyContent="space-between">
+                  <Box>
+                    <Typography color="textSecondary" variant="body2">
+                      Approved
+                    </Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      {stats.approvedLoans}
+                    </Typography>
+                  </Box>
+                  <CheckCircle color="success" sx={{ fontSize: 32 }} />
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ borderRadius: '12px', borderLeft: '4px solid #f44336' }}>
+              <CardContent>
+                <Box display="flex" alignItems="center" justifyContent="space-between">
+                  <Box>
+                    <Typography color="textSecondary" variant="body2">
+                      Rejected
+                    </Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      {stats.rejectedLoans}
+                    </Typography>
+                  </Box>
+                  <Cancel color="error" sx={{ fontSize: 32 }} />
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ borderRadius: '12px', borderLeft: '4px solid #2196f3' }}>
+              <CardContent>
+                <Box display="flex" alignItems="center" justifyContent="space-between">
+                  <Box>
+                    <Typography color="textSecondary" variant="body2">
+                      Disbursed
+                    </Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      {stats.disbursedLoans}
+                    </Typography>
+                  </Box>
+                  <AccountBalance color="primary" sx={{ fontSize: 32 }} />
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+
+        {/* Loans Table */}
+        <Paper sx={{ p: 2, borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', mb: 4 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: '#374151' }}>
+              Loan Applications Details
+            </Typography>
+            <Button
+              variant="outlined"
+              startIcon={<Assessment />}
+              onClick={fetchDashboardData}
+              sx={{
+                borderColor: '#7dd3c0',
+                color: '#7dd3c0',
+                '&:hover': {
+                  borderColor: '#5dbfa9',
+                  backgroundColor: '#f4fcf9'
+                }
+              }}
+            >
+              Refresh Data
+            </Button>
+          </Box>
+          
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ 
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  '& .MuiTableCell-head': {
+                    color: 'white',
+                    fontWeight: 600,
+                    fontSize: '0.875rem'
+                  }
+                }}>
+                  <TableCell>LOAN NUMBER</TableCell>
+                  <TableCell>CUSTOMER</TableCell>
+                  <TableCell>AMOUNT</TableCell>
+                  <TableCell>PURPOSE</TableCell>
+                  <TableCell>STATUS</TableCell>
+                  <TableCell>CREATED DATE</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {allLoans.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center">
+                      <Typography variant="body2" color="textSecondary">
+                        No loans found
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  allLoans.slice(0, 10).map((loan) => (
+                  <TableRow key={loan.id} sx={{ '&:hover': { backgroundColor: '#f8f9fa' } }}>
+                    <TableCell sx={{ fontWeight: 500 }}>{loan.loanNumber}</TableCell>
+                    <TableCell>
+                        {loan.customer?.name || `${loan.customer?.firstName || ''} ${loan.customer?.lastName || ''}`.trim()}
+                    </TableCell>
+                    <TableCell sx={{ color: '#2e7d32', fontWeight: 600 }}>
+                      GHS {parseFloat(loan.totalAmount || loan.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell>{loan.purposeOfLoan || loan.purpose || 'N/A'}</TableCell>
+                    <TableCell>
+                      <Chip
+                        icon={getStatusIcon(loan.status)}
+                        label={loan.status}
+                        color={getStatusColor(loan.status)}
+                        size="small"
+                        sx={{ fontWeight: 500 }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {new Date(loan.createdAt || loan.created_at || loan.applicationDate).toLocaleDateString()}
+                    </TableCell>
+                  </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
 
         {/* Total Amount and Recent Loans Row */}
         <Grid container spacing={4} sx={{ mb: 5 }}>
@@ -686,39 +888,39 @@ const Dashboard = () => {
                         py: 2.5
                       }}
                     >
-                      <ListItemText
-                        primary={
+                  <ListItemText
+                    primary={
                           <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
                             <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#374151' }}>
-                              {loan.loanNumber}
-                            </Typography>
-                            <Chip
-                              icon={getStatusIcon(loan.status)}
-                              label={loan.status}
-                              color={getStatusColor(loan.status)}
+                          {loan.loanNumber}
+                        </Typography>
+                        <Chip
+                          icon={getStatusIcon(loan.status)}
+                          label={loan.status}
+                          color={getStatusColor(loan.status)}
                               size="medium"
-                            />
-                          </Box>
-                        }
-                        secondary={
+                        />
+                      </Box>
+                    }
+                    secondary={
                           <Box sx={{ mt: 1.5 }}>
                             <Typography variant="body1" color="text.secondary">
                               Customer: {loan.customer?.name || `${loan.customer?.firstName || ''} ${loan.customer?.lastName || ''}`.trim()}
                             </Typography>
                             <Typography variant="body1" color="text.secondary">
                               Amount: GHS {parseFloat(loan.totalAmount || loan.amount || 0).toLocaleString()}
-                            </Typography>
+                        </Typography>
                             <Typography variant="body1" color="text.secondary">
                               Date: {new Date(loan.createdAt || loan.created_at).toLocaleDateString()}
-                            </Typography>
-                          </Box>
-                        }
-                      />
-                    </ListItem>
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                </ListItem>
                   ))
                 )}
-              </List>
-            </Paper>
+            </List>
+          </Paper>
           </Grid>
         </Grid>
 
@@ -788,7 +990,7 @@ const Dashboard = () => {
             <Paper sx={{ p: 5, height: 600, boxShadow: 2, border: '2px solid #7dd3c0' }}>
               <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', mb: 4, color: '#374151' }}>
                 Loan Amount by Status
-              </Typography>
+            </Typography>
               <ResponsiveContainer width="100%" height="86%">
                 <BarChart data={chartData.amountByStatus}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -808,9 +1010,9 @@ const Dashboard = () => {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </Paper>
-          </Grid>
+          </Paper>
         </Grid>
+      </Grid>
       </Box>
     </Box>
   );
